@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+      "esModuleInterop": true,
+      "forceConsistentCasingInFileNames": true,
+      "lib": ["es7"],
+      "module": "commonjs",
+      "noUnusedLocals": true,
+      "noUnusedParameters": false,
+      "outDir": "dist",
+      "preserveConstEnums": true,
+      "sourceMap": true,
+      "target": "es6",
+      "experimentalDecorators": true,
+      "typeRoots": [
+          "types",
+          "node_modules/@types"
+      ],
+      "plugins": [
+        { "name": "typescript-tslint-plugin" }
+      ]
+  },
+  "include": [
+      "src/**/*"
+  ],
+  "exclude": [
+      "dist",
+      "node_modules",
+      "src/**/*.test.ts"
+  ]
+}

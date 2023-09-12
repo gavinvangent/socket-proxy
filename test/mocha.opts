@@ -1,0 +1,6 @@
+--require source-map-support/register
+--require ts-node/register/transpile-only
+--require test/support/setup.ts
+--recursive test/**/*.test.ts
+--reporter spec
+--check-leaks
