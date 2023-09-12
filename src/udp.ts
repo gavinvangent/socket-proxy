@@ -8,7 +8,7 @@ export function createUdpProxy(config: Config) {
     let _targets: { [key: string]: UdpTarget } = {}
 
     const getServerSocket = (client: UdpTarget): UdpTarget => {
-        const clientId = `${client.address}:${client.port}:${client.family}:${client.size}:${client.alias}`
+        const clientId = `${client.address}:${client.port}:${client.family}:${client.alias}`
         if (!_targets[clientId]) {
             const server: UdpTarget = _targets[clientId] = {
                 socket: createSocket(config.type as 'udp4' | 'udp6'),
@@ -44,7 +44,6 @@ export function createUdpProxy(config: Config) {
             listener.close()
         })
         .on('message', (message, clientRemoteInfo) => {
-            console.log('message', message);
             const client: UdpTarget = { socket: listener, ...clientRemoteInfo, alias: 'client' }
             const server: UdpTarget = getServerSocket(client)
             proxyMessage(message, client, server)
