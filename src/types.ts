@@ -1,20 +1,20 @@
 import { Socket as UdpSocket } from 'dgram'
 import { Socket as TcpSocket } from 'net'
 
-export interface UdpTarget {
-    socket: UdpSocket
-    alias: string
+export interface Target {
     address: string
     port: number
     family?: string
+}
+
+export interface UdpTarget extends Target {
+    socket: UdpSocket
+    alias: string
     size?: number
 }
 
-export interface TcpTarget {
+export interface TcpTarget extends Target {
     socket: TcpSocket
     alias: string
-    address: string
-    port: number
-    family?: string
     size?: number
 }

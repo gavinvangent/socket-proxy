@@ -1,8 +1,9 @@
 import { createSocket } from 'dgram'
 import { UdpTarget } from './types'
 import { Config } from './config'
+import { Logger } from './lib/logger'
 
-export function createUdpProxy(config: Config) {
+export function createUdpProxy(config: Config, logger: Logger) {
     const listener = createSocket('udp4')
 
     let _targets: { [key: string]: UdpTarget } = {}
@@ -27,20 +28,20 @@ export function createUdpProxy(config: Config) {
     }
 
     const proxyMessage = (message: Buffer, source: UdpTarget, destination: UdpTarget) => {
-        destination.socket.send(message, destination.port, destination.address, error => {
-            if (error) {
-                console.error('Error forwarding packet to server', error)
+        destination.socket.send(message, destination.port, destination.address, err => {
+            if (err) {
+                logger.log('SOCKET_PACKET_ERROR', 'Error forwarding packet to server', err.name, err.message, err.stack)
                 destination.socket.close()
                 return
             }
 
-            console.log(`[${source.address}:${source.port}] ${source.alias} -> ${destination.alias} [${destination.address}:${destination.port}] ${message.toString('hex')}`)
+            logger.log('SOCKET_PACKET', `${source.address}:${source.port}`, `${destination.address}:${destination.port}`, message.toString('hex'))
         })
     }
 
     listener
         .on('error', err => {
-            console.log(`listener error:\n${err.stack}`)
+            logger.log('PROXY_START_ERROR', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`, err.message)
             listener.close()
         })
         .on('message', (message, clientRemoteInfo) => {
@@ -49,8 +50,7 @@ export function createUdpProxy(config: Config) {
             proxyMessage(message, client, server)
         })
         .on('listening', () => {
-            const address = listener.address()
-            console.log(`Listening on ${address.address}:${address.port}`)
+            logger.log('PROXY_START', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`)
         })
         .bind(config.bindPort, config.bindAddress)
 }

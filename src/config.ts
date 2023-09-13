@@ -1,4 +1,4 @@
-import minimist from 'minimist';
+import minimist from 'minimist'
 
 export class Config {
     /** The address for the proxy to listen on */
@@ -11,10 +11,12 @@ export class Config {
     serverPort: number
     /** The type of listener to create, udp6 or udp4, defaults to udp4 */
     type: 'tcp' | 'udp4' | 'udp6'
+    /** The path on disk where to write logs to */
+    logPath?: string
 
     static fromArgs(argv: string[], pkg: any): Config {
-        const args: string[] = minimist(argv.slice(2));
-        const config = new Config();
+        const args: string[] = minimist(argv.slice(2))
+        const config = new Config()
 
         config.bindAddress = this.param(args, 'bindAddress', '0.0.0.0')
         config.bindPort = +this.param(args, 'bindPort', '0')
@@ -22,11 +24,13 @@ export class Config {
         config.serverAddress = this.param(args, 'serverAddress')
         config.serverPort = +this.param(args, 'serverPort', '0')
 
-        config.type = this.param(args, 'type', 'tcp') as 'tcp' | 'udp4' | 'udp6';
+        config.type = this.param(args, 'type', 'tcp') as 'tcp' | 'udp4' | 'udp6'
 
         if (config.type === ('udp' as any)) {
             config.type = 'udp4'
         }
+
+        config.logPath = this.param(args, 'logPath')
 
         return config
     }
@@ -38,7 +42,7 @@ export class Config {
      * @param def a default value if no value is found
      */
     private static param(args: string[], name: string, def: any = null): string {
-        return args[name] || process.env[name.toUpperCase()] || def;
+        return args[name] || process.env[name.toUpperCase()] || def
     }
 
     /**
@@ -47,7 +51,7 @@ export class Config {
      * @returns 
      */
     static isTrue(value: any): boolean {
-        return /^(true|1)$/i.test(value) || value === 1 || value === true;
+        return /^(true|1)$/i.test(value) || value === 1 || value === true
     }
 
     /**
