@@ -32,7 +32,7 @@ export function createTcpProxy(config: Config, logger: Logger) {
 
     listener
         .on('connection', (socket) => {
-            const client: TcpTarget = { socket, ...socket.address() as AddressInfo, alias: 'client' }
+            const client: TcpTarget = { socket, address: socket.remoteAddress, port: socket.remotePort, family: socket.remoteFamily, alias: 'client' }
             logger.log('SOCKET_START', `${client.address}:${client.port}`)
 
             client.socket.on('end', () => {

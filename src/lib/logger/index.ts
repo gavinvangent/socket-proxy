@@ -8,6 +8,8 @@ export class Logger {
     constructor(private readonly transports: Transport[]) {
     }
 
+    private _stream: Writable;
+
     log(...parts: string[]) {
         let readable = new Readable()
 
@@ -22,16 +24,20 @@ export class Logger {
         readable.push('\n')
         readable.push(null)
 
-        readable.pipe(this.getStream())
+        readable.pipe(this.getStream(), { end: false })
     }
 
     getStream(): Writable {
-        const passThrough = new PassThrough()
-
-        for (let transport of this.transports) {
-            passThrough.pipe(transport.getStream())
+        if (this._stream && !this._stream.destroyed) {
+            return this._stream
         }
 
-        return passThrough
+        this._stream = new PassThrough()
+
+        for (let transport of this.transports) {
+            this._stream.pipe(transport.getStream())
+        }
+
+        return this._stream
     }
 }
