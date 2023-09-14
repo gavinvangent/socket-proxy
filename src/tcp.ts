@@ -18,15 +18,17 @@ export function createTcpProxy(config: Config, logger: Logger) {
         }).once('connect', () => {
             logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
 
-            const hexTransformer = ByteTransformer.createStream('hex')
-
-            const serverLogTransformer = SocketLogTransformer.createStream(server, 'SOCKET_PACKET', client)
-            server.socket.pipe(hexTransformer).pipe(serverLogTransformer).pipe(logger.getStream())
             server.socket.pipe(client.socket)
+            server.socket
+                .pipe(ByteTransformer.createStream('hex'))
+                .pipe(SocketLogTransformer.createStream(server, 'SOCKET_PACKET', client))
+                .pipe(logger.getStream())
 
-            const clientLogTransformer = SocketLogTransformer.createStream(client, 'SOCKET_PACKET', server)
-            client.socket.pipe(hexTransformer).pipe(clientLogTransformer).pipe(logger.getStream())
             client.socket.pipe(server.socket)
+            client.socket
+                .pipe(ByteTransformer.createStream('hex'))
+                .pipe(SocketLogTransformer.createStream(client, 'SOCKET_PACKET', server))
+                .pipe(logger.getStream())
         })
     }
 
