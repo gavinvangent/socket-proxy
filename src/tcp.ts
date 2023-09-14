@@ -20,13 +20,13 @@ export function createTcpProxy(config: Config, logger: Logger) {
 
             const hexTransformer = ByteTransformer.createStream('hex')
 
-            const clientLogTransformer = SocketLogTransformer.createStream(client, 'SOCKET_PACKET', server)
-            client.socket.pipe(hexTransformer).pipe(clientLogTransformer).pipe(logger.getStream())
-            client.socket.pipe(server.socket)
-
             const serverLogTransformer = SocketLogTransformer.createStream(server, 'SOCKET_PACKET', client)
             server.socket.pipe(hexTransformer).pipe(serverLogTransformer).pipe(logger.getStream())
             server.socket.pipe(client.socket)
+
+            const clientLogTransformer = SocketLogTransformer.createStream(client, 'SOCKET_PACKET', server)
+            client.socket.pipe(hexTransformer).pipe(clientLogTransformer).pipe(logger.getStream())
+            client.socket.pipe(server.socket)
         })
     }
 
