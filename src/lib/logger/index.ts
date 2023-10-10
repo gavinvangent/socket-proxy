@@ -35,7 +35,7 @@ export class Logger {
         this._stream = new PassThrough()
 
         for (let transport of this.transports) {
-            this._stream.pipe(transport.getStream())
+            this._stream.pipe(transport.getStream(), { end: false })
         }
 
         return this._stream
