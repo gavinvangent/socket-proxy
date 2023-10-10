@@ -1,13 +1,18 @@
-import { createServer, createConnection, AddressInfo } from 'net'
+import { createServer, createConnection } from 'net'
 import { TcpTarget } from './types'
 import { Config } from './config'
 import { Logger } from './lib/logger'
 import { ByteTransformer, SocketLogTransformer } from './lib/transformers'
 
-
-
 export function createTcpProxy(config: Config, logger: Logger) {
     const listener = createServer()
+
+    const bindTargetToLogger = (inbound: TcpTarget, outbound: TcpTarget, logger: Logger) => {
+        inbound.socket
+            .pipe(ByteTransformer.createStream('hex'))
+            .pipe(SocketLogTransformer.createStream(inbound, 'SOCKET_PACKET', outbound))
+            .pipe(logger.getStream(), { end: false })
+    }
 
     const bindClientToServer = (client: TcpTarget, server: TcpTarget) => {
         server.socket.once('end', err => {
@@ -19,16 +24,10 @@ export function createTcpProxy(config: Config, logger: Logger) {
             logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
 
             server.socket.pipe(client.socket)
-            server.socket
-                .pipe(ByteTransformer.createStream('hex'))
-                .pipe(SocketLogTransformer.createStream(server, 'SOCKET_PACKET', client))
-                .pipe(logger.getStream())
+            bindTargetToLogger(server, client, logger);
 
             client.socket.pipe(server.socket)
-            client.socket
-                .pipe(ByteTransformer.createStream('hex'))
-                .pipe(SocketLogTransformer.createStream(client, 'SOCKET_PACKET', server))
-                .pipe(logger.getStream())
+            bindTargetToLogger(client, server, logger);
         })
     }
 
