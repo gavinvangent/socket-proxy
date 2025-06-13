@@ -30,13 +30,13 @@ export function createTcpProxy(config: Config, logger: Logger) {
     const bindClientToServer = (client: TcpTarget, server: TcpTarget) => {
         server.socket.once('end', err => {
             logger.log('SOCKET_UNBOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
-            if (!client.socket.destroyed) client.socket.end()
+            client.socket.end()
         }).once('error', err => {
             logger.log('SOCKET_BIND_ERROR', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
-            if (!client.socket.destroyed) client.socket.end()
+            client.socket.end()
         }).once('timeout', () => {
             logger.log('SOCKET_TIMEOUT', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
-            if (!client.socket.destroyed) client.socket.end()
+            client.socket.end()
         }).once('connect', () => {
             logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
 
