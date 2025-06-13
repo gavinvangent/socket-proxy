@@ -7,11 +7,14 @@ import { ByteTransformer, SocketLogTransformer } from './lib/transformers'
 export function createTcpProxy(config: Config, logger: Logger) {
     const listener = createServer()
 
-    const configureTcpUserTimeout = (socket: any, keepAliveInterval: number, name: string) => {
-        socket.setTimeout(5 * keepAliveInterval)
+    const configureSocketKeepAlive = (socket: any, keepAliveInterval: number, name: string) => {
         try {
-            if (keepAliveInterval > 0) socket.setKeepAlive(true, keepAliveInterval)
-            logger.log('KEEPALIVE_CONFIGURED', name)
+            if (keepAliveInterval > 0) {
+                socket.setKeepAlive(true, keepAliveInterval)
+                // Note: Default timeout is 0 (no timeout).
+                socket.setTimeout(5 * keepAliveInterval)
+                logger.log('KEEPALIVE_CONFIGURED', name)
+            }
         } catch (err) {
             logger.log('KEEPALIVE_CONFIG_ERROR', name, err.message)
         }
@@ -38,9 +41,9 @@ export function createTcpProxy(config: Config, logger: Logger) {
             logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
 
             // Configure keep-alive on 'client' side connection
-            configureTcpUserTimeout(client.socket, config.clientKeepAliveInterval, 'client')
+            configureSocketKeepAlive(client.socket, config.clientKeepAliveInterval, 'client')
             // Configure keep-alive on 'server' side connection
-            configureTcpUserTimeout(server.socket, config.serverKeepAliveInterval, 'server')
+            configureSocketKeepAlive(server.socket, config.serverKeepAliveInterval, 'server')
 
             server.socket.pipe(client.socket)
             bindTargetToLogger(server, client, logger);
