@@ -30,9 +30,9 @@ export function createTcpProxy(config: Config, logger: Logger) {
     const bindClientToServer = (client: TcpTarget, server: TcpTarget) => {
         server.socket.once('end', err => {
             logger.log('SOCKET_UNBOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
-            // If the connection between the 'client' and 'server' ends, the connection to the 'client' doesn't need to end.
-            // When the 'client' sends its next message, the proxy will create a new connection to the 'server' and proxy the message.
-            // If the 'client' is awaiting a response from the 'server', it will eventually time out and reconnect, and then resend its last message.
+            // When the connection between the 'server' and 'client' ends, we don't forcefully close the client's connection.
+            // Instead, the client can continue communicating. On its next message, the proxy will establish a new connection to the server and forward the message.
+            // If the client was waiting for a server response, it will eventually time out, reconnect, and resend the pending message.
         }).once('error', err => {
             logger.log('SOCKET_BIND_ERROR', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
             client.socket.end()
