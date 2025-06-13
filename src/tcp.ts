@@ -7,6 +7,18 @@ import { ByteTransformer, SocketLogTransformer } from './lib/transformers'
 export function createTcpProxy(config: Config, logger: Logger) {
     const listener = createServer()
 
+    const configureTcpUserTimeout = (socket: any, name: string) => {
+        try {
+            // Basic keep-alive
+            socket.setKeepAlive(true, 30000) // 30 seconds
+            socket.setTimeout(0) // Disable application timeout
+
+            logger.log('KEEPALIVE_CONFIGURED', name)
+        } catch (err) {
+            logger.log('KEEPALIVE_CONFIG_ERROR', name, err.message)
+        }
+    }
+
     const bindTargetToLogger = (inbound: TcpTarget, outbound: TcpTarget, logger: Logger) => {
         inbound.socket
             .pipe(ByteTransformer.createStream('hex'))
@@ -17,11 +29,17 @@ export function createTcpProxy(config: Config, logger: Logger) {
     const bindClientToServer = (client: TcpTarget, server: TcpTarget) => {
         server.socket.once('end', err => {
             logger.log('SOCKET_UNBOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
+            if (!client.socket.destroyed) client.socket.end()
         }).once('error', err => {
             logger.log('SOCKET_BIND_ERROR', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
-            client.socket.end()
+            if (!client.socket.destroyed) client.socket.end()
         }).once('connect', () => {
             logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
+
+            // Configure keep-alive on incoming client side connection (this replicates the usual server->device keep-alive behaviour)
+            configureTcpUserTimeout(client.socket, 'client')
+            // Configure keep-alive on outgoing server side connection (note that this will keep the proxy<->server connection healthy)
+            configureTcpUserTimeout(server.socket, 'server')
 
             server.socket.pipe(client.socket)
             bindTargetToLogger(server, client, logger);
