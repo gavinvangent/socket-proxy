@@ -7,12 +7,10 @@ import { ByteTransformer, SocketLogTransformer } from './lib/transformers'
 export function createTcpProxy(config: Config, logger: Logger) {
     const listener = createServer()
 
-    const configureTcpUserTimeout = (socket: any, name: string) => {
+    const configureTcpUserTimeout = (socket: any, keepAliveInterval: number, name: string) => {
+        socket.setTimeout(5 * keepAliveInterval)
         try {
-            // Basic keep-alive
-            socket.setKeepAlive(true, 30000) // 30 seconds
-            socket.setTimeout(0) // Disable application timeout
-
+            if (keepAliveInterval > 0) socket.setKeepAlive(true, keepAliveInterval)
             logger.log('KEEPALIVE_CONFIGURED', name)
         } catch (err) {
             logger.log('KEEPALIVE_CONFIG_ERROR', name, err.message)
@@ -33,13 +31,16 @@ export function createTcpProxy(config: Config, logger: Logger) {
         }).once('error', err => {
             logger.log('SOCKET_BIND_ERROR', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
             if (!client.socket.destroyed) client.socket.end()
+        }).once('timeout', () => {
+            logger.log('SOCKET_TIMEOUT', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
+            if (!client.socket.destroyed) client.socket.end()
         }).once('connect', () => {
             logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
 
-            // Configure keep-alive on incoming client side connection (this replicates the usual server->device keep-alive behaviour)
-            configureTcpUserTimeout(client.socket, 'client')
-            // Configure keep-alive on outgoing server side connection (note that this will keep the proxy<->server connection healthy)
-            configureTcpUserTimeout(server.socket, 'server')
+            // Configure keep-alive on 'client' side connection
+            configureTcpUserTimeout(client.socket, config.clientKeepAliveInterval, 'client')
+            // Configure keep-alive on 'server' side connection
+            configureTcpUserTimeout(server.socket, config.serverKeepAliveInterval, 'server')
 
             server.socket.pipe(client.socket)
             bindTargetToLogger(server, client, logger);
