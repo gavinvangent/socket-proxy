@@ -6,17 +6,17 @@ import { createUdpProxy } from './udp'
 import { NotSupportedError } from './lib/errors'
 import { ConsoleTransport, FileStoreTransport, Logger, Transport } from './lib/logger'
 
-let logger: Logger;
+let logger: Logger
 
 /******** Global error handling ********/
 const onError = (type: string, error: Error) => {
-    console.error(type, error);
+    console.error(type, error)
     if (logger) {
-        logger.log(type, error.name, error.message, error.stack);
+        logger.log(type, error.name, error.message, error.stack)
         // give us time to log the error, then exit
-        setTimeout(() => process.exit(1), 2000);
+        setTimeout(() => process.exit(1), 2000)
     } else {
-        process.exit(1);
+        process.exit(1)
     }
 }
 
@@ -30,8 +30,8 @@ const config: Config = Config.fromArgs(process.argv, pkg)
 config.validate()
 
 /******** Logger ********/
-const transports: Transport[] = [];
-transports.push(new ConsoleTransport());
+const transports: Transport[] = []
+transports.push(new ConsoleTransport())
 if (config.logPath) {
     transports.push(new FileStoreTransport(config.logPath))
 }

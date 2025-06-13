@@ -9,6 +9,10 @@ export class Config {
     serverAddress: string
     /** The port for the proxy to send received traffic to */
     serverPort: number
+    /** the TCP Keep-Alive Interval (milliseconds) for the 'server' Connection, defaults to none */
+    serverKeepAliveInterval: number
+    /** the TCP Keep-Alive Interval (milliseconds) for the 'client' Connection, defaults to none */
+    clientKeepAliveInterval: number
     /** The type of listener to create, udp6 or udp4, defaults to udp4 */
     type: 'tcp' | 'udp4' | 'udp6'
     /** The path on disk where to write logs to */
@@ -23,6 +27,8 @@ export class Config {
 
         config.serverAddress = this.param(args, 'serverAddress')
         config.serverPort = +this.param(args, 'serverPort', '0')
+        config.serverKeepAliveInterval = +this.param(args, 'serverKeepAliveInterval', '0')
+        config.clientKeepAliveInterval = +this.param(args, 'clientKeepAliveInterval', '0')
 
         config.type = this.param(args, 'type', 'tcp') as 'tcp' | 'udp4' | 'udp6'
 
@@ -31,6 +37,7 @@ export class Config {
         }
 
         config.logPath = this.param(args, 'logPath')
+
 
         return config
     }
