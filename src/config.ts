@@ -14,7 +14,7 @@ export class Config {
     /** The path on disk where to write logs to */
     logPath?: string
     /** the TCP Keep-Alive Interval (milliseconds) for the 'client' Connection, defaults to none */
-     clientKeepAliveInterval: number
+    clientKeepAliveInterval: number
     /** the TCP Keep-Alive Interval (milliseconds) for the 'server' Connection, defaults to none */
     serverKeepAliveInterval: number
 
@@ -27,6 +27,8 @@ export class Config {
 
         config.serverAddress = this.param(args, 'serverAddress')
         config.serverPort = +this.param(args, 'serverPort', '0')
+        config.serverKeepAliveInterval = +this.param(args, 'serverKeepAliveInterval', '0')
+        config.clientKeepAliveInterval = +this.param(args, 'clientKeepAliveInterval', '0')
 
         config.type = this.param(args, 'type', 'tcp') as 'tcp' | 'udp4' | 'udp6'
 
@@ -36,8 +38,6 @@ export class Config {
 
         config.logPath = this.param(args, 'logPath')
 
-        config.clientKeepAliveInterval = +this.param(args, 'clientKeepAliveInterval', '0')
-        config.serverKeepAliveInterval = +this.param(args, 'serverKeepAliveInterval', '0')
 
         return config
     }
