@@ -24,8 +24,8 @@ npm run start -- ${args}
 - bindPort - The port to bind the server to, required
 - serverAddress - The address of the remote server where traffic will be forwarded to, required in the format of `server.example.com` or `8.8.4.4`
 - serverPort - The port of the remote server where traffic will be forwarded to, required
-- clientKeepAliveInterval - the TCP Keep-Alive Interval (milliseconds) for the client connection, defaults to none
-- serverKeepAliveInterval - the TCP Keep-Alive Interval (milliseconds) for the server connection, defaults to none
+- clientKeepAliveInterval - the TCP Keep-Alive Interval (milliseconds) for the client connection, optional, defaults to none
+- serverKeepAliveInterval - the TCP Keep-Alive Interval (milliseconds) for the server connection, optional, defaults to none
 - type - The type of server to start, defaults to `tcp`, options are
     - tcp
     - udp (same as udp4)
