@@ -9,14 +9,14 @@ export class Config {
     serverAddress: string
     /** The port for the proxy to send received traffic to */
     serverPort: number
+    /** the TCP Keep-Alive Interval (milliseconds) for the 'server' Connection, defaults to none */
+    serverKeepAliveInterval: number
+    /** the TCP Keep-Alive Interval (milliseconds) for the 'client' Connection, defaults to none */
+    clientKeepAliveInterval: number
     /** The type of listener to create, udp6 or udp4, defaults to udp4 */
     type: 'tcp' | 'udp4' | 'udp6'
     /** The path on disk where to write logs to */
     logPath?: string
-    /** the TCP Keep-Alive Interval (milliseconds) for the 'client' Connection, defaults to none */
-    clientKeepAliveInterval: number
-    /** the TCP Keep-Alive Interval (milliseconds) for the 'server' Connection, defaults to none */
-    serverKeepAliveInterval: number
 
     static fromArgs(argv: string[], pkg: any): Config {
         const args: string[] = minimist(argv.slice(2))

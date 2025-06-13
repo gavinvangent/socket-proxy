@@ -8,15 +8,15 @@ export function createTcpProxy(config: Config, logger: Logger) {
     const listener = createServer()
 
     const configureSocketKeepAlive = (socket: any, keepAliveInterval: number, name: string) => {
-        try {
-            if (keepAliveInterval > 0) {
+        if (keepAliveInterval > 0) {
+            try {
                 socket.setKeepAlive(true, keepAliveInterval)
                 // Note: Default timeout is 0 (no timeout).
                 socket.setTimeout(5 * keepAliveInterval)
                 logger.log('KEEPALIVE_CONFIGURED', name)
+            } catch (err) {
+                logger.log('KEEPALIVE_CONFIG_ERROR', name, err.message)
             }
-        } catch (err) {
-            logger.log('KEEPALIVE_CONFIG_ERROR', name, err.message)
         }
     }
 
