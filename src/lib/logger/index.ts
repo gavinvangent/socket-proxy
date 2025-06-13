@@ -8,7 +8,7 @@ export class Logger {
     constructor(private readonly transports: Transport[]) {
     }
 
-    private _stream: Writable;
+    private _stream: Writable
 
     log(...parts: string[]) {
         let readable = new Readable()
