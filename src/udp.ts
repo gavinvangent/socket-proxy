@@ -24,6 +24,14 @@ export function createUdpProxy(config: Config, logger: Logger, connectionManager
                     proxyMessage(message, server, client)
                     connectionManager.touch(client.id)
                 })
+                .once('idle_timeout', () => {
+                    logger.log('SOCKET_TIMEOUT', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
+                    server.socket.close()
+                })
+                .once('shutdown', () => {
+                    logger.log('SOCKET_SHUTDOWN', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
+                    server.socket.close()
+                })
                 .once('error', err => {
                     logger.log('SOCKET_ERROR', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
                     server.socket.close()
@@ -31,7 +39,7 @@ export function createUdpProxy(config: Config, logger: Logger, connectionManager
                 .once('close', () => {
                     logger.log('SOCKET_UNBOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
                     delete _targets[client.id]
-                    connectionManager.unregister(client.id)
+                    connectionManager.deregister(client.id)
                 })
 
             return { server, isNew: true }
@@ -54,9 +62,8 @@ export function createUdpProxy(config: Config, logger: Logger, connectionManager
     }
 
     listener
-        .on('error', err => {
-            logger.log('PROXY_START_ERROR', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`, err.message)
-            listener.close()
+        .once('listening', () => {
+            logger.log('PROXY_START', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`)
         })
         .on('message', (message, clientRemoteInfo) => {
             const client: UdpTarget = {
@@ -68,10 +75,7 @@ export function createUdpProxy(config: Config, logger: Logger, connectionManager
             const { server, isNew } = getServerSocket(client)
 
             if (isNew) {
-                connectionManager.register(client.id, (reason) => {
-                    logger.log('SOCKET_ENDING', `${client.address}:${client.port}`, `${server.address}:${server.port}`, reason)
-                    server.socket.close()
-                })
+                connectionManager.register(server.id, server.socket)
                 logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
             } else {
                 connectionManager.touch(client.id)
@@ -79,11 +83,11 @@ export function createUdpProxy(config: Config, logger: Logger, connectionManager
 
             proxyMessage(message, client, server)
         })
-        .on('listening', () => {
-            logger.log('PROXY_START', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`)
+        .once('error', err => {
+            logger.log('PROXY_ERROR', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`, err.message)
         })
-        .on('close', () => {
-            logger.log('PROXY_STOP', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`)
+        .once('close', () => {
+            logger.log('PROXY_CLOSE', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`)
             connectionManager.closeAll()
         })
         .bind(config.bindPort, config.bindAddress)

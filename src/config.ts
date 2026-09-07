@@ -10,7 +10,7 @@ export class Config {
     /** The port for the proxy to send received traffic to */
     serverPort: number
     /** the duration, in milliseconds, of idle inactivity before the client connection is closed (closes the connection to the server too), defaults to 5 minutes */
-    socketTimeoutMs: number
+    socketIdleTimeoutMs: number
     /** the duration, in milliseconds, between scans for idle sockets, defaults to 30 seconds */
     sweepIntervalMs: number
     /** The type of listener to create, tcp or udp6 or udp4, defaults to tcp */
@@ -27,7 +27,7 @@ export class Config {
 
         config.serverAddress = this.param(args, 'serverAddress')
         config.serverPort = +this.param(args, 'serverPort', '0')
-        config.socketTimeoutMs = +this.param(args, 'socketTimeoutMs', '300000')
+        config.socketIdleTimeoutMs = +this.param(args, 'socketIdleTimeoutMs', '300000')
         config.sweepIntervalMs = +this.param(args, 'sweepIntervalMs', '30000')
 
         config.type = this.param(args, 'type', 'tcp') as 'tcp' | 'udp4' | 'udp6'

@@ -18,9 +18,7 @@ export function createTcpProxy(config: Config, logger: Logger, connectionManager
     const bindClientToServer = (client: TcpTarget, server: TcpTarget) => {
         server.socket.once('end', err => {
             logger.log('SOCKET_UNBOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
-            // When the connection between the server and proxy ends, we don't forcefully close the client's connection.
-            // Instead, the client can continue communicating. On its next message, the proxy will establish a new connection to the server and forward the message.
-            // If the client was waiting for a server response, it will eventually time out, reconnect, and resend the pending message.
+            client.socket.end(err);
         }).once('error', err => {
             logger.log('SOCKET_BIND_ERROR', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
             client.socket.end()
@@ -43,12 +41,19 @@ export function createTcpProxy(config: Config, logger: Logger, connectionManager
             client.socket.on('data', () => {
                 connectionManager.touch(client.id)
             })
-            .on('end', () => {
+            .once('end', () => {
                 logger.log('SOCKET_END', `${client.address}:${client.port}`)
-                connectionManager.unregister(client.id)
-            }).on('error', err => {
+                connectionManager.deregister(client.id)
+            }).once('error', err => {
                 logger.log('SOCKET_END', `${client.address}:${client.port}`, err.message)
-                connectionManager.unregister(client.id)
+                connectionManager.deregister(client.id)
+            }).once('idle_timeout', () => {
+                logger.log('SOCKET_TIMEOUT', `${client.address}:${client.port}`)
+                socket.end()
+            })
+            .once('shutdown', () => {
+                logger.log('SOCKET_SHUTDOWN', `${client.address}:${client.port}`)
+                socket.end()
             })
 
             let server: TcpTarget = {
@@ -61,20 +66,17 @@ export function createTcpProxy(config: Config, logger: Logger, connectionManager
 
             bindClientToServer(client, server)
 
-            connectionManager.register(client.id, (reason) => {
-                logger.log('SOCKET_ENDING', `${client.address}:${client.port}`, `${server.address}:${server.port}`, reason)
-                client.socket.end()
-            })
+            connectionManager.register(client.id, client.socket)
         })
-        .on('listening', () => {
-            logger.log()
+        .once('listening', () => {
             logger.log('PROXY_START', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`)
         })
         .on('error', err => {
-            logger.log('PROXY_START_ERROR', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`, err.message)
+            logger.log('PROXY_ERROR', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`, err.message)
         })
-        .on('close', () => {
-            connectionManager.closeAll()
+        .once('close', () => {
+            // only invoked once incoming conns are no longer accepted and all existing conns are closed
+            logger.log('PROXY_CLOSE', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`)
         })
         .listen(config.bindPort, config.bindAddress)
 }

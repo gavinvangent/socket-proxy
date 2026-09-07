@@ -39,7 +39,7 @@ if (config.logPath) {
 logger = new Logger(transports)
 
 /******** Connection Management ********/
-let connectionManager = new ConnectionManager(config.socketTimeoutMs, config.sweepIntervalMs)
+let connectionManager = new ConnectionManager(config.socketIdleTimeoutMs, config.sweepIntervalMs)
 connectionManager.start()
 
 /******** Listener Configuration ********/

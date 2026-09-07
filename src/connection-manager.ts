@@ -1,6 +1,8 @@
+import { EventEmitter } from "events"
+
 export interface ManagedConnection {
     expiresAt: number
-    close: (reason: string) => void
+    socket: EventEmitter
 }
 
 export class ConnectionManager {
@@ -8,17 +10,17 @@ export class ConnectionManager {
     private sweepTimer: NodeJS.Timeout | null = null
 
     constructor(
-        private readonly timeoutMs: number = 300e3, // 5min
+        private readonly idleTimeoutMs: number = 300e3, // 5min
         private readonly sweepIntervalMs: number = 30e3, // 30sec
     ) {}
 
     /**
      * Register a new connection to be managed
      */
-    register(id: string, close: (reason: string) => void): void {
+    register(id: string, socket: EventEmitter): void {
         this.connections.set(id, {
-            expiresAt: Date.now() + this.timeoutMs,
-            close
+            expiresAt: Date.now() + this.idleTimeoutMs,
+            socket,
         })
     }
 
@@ -28,14 +30,14 @@ export class ConnectionManager {
     touch(id: string): void {
         const conn = this.connections.get(id)
         if (conn) {
-            conn.expiresAt = Date.now() + this.timeoutMs
+            conn.expiresAt = Date.now() + this.idleTimeoutMs
         }
     }
 
     /**
      * Remove a connection from management (called when connection closes naturally)
      */
-    unregister(id: string): void {
+    deregister(id: string): void {
         this.connections.delete(id)
     }
 
@@ -50,7 +52,7 @@ export class ConnectionManager {
 
             for (const [id, conn] of this.connections) {
                 if (now > conn.expiresAt) {
-                    conn.close('idle_timeout')
+                    conn.socket.emit('idle_timeout')
                     this.connections.delete(id)
                 }
             }
@@ -75,7 +77,7 @@ export class ConnectionManager {
      */
     closeAll(): void {
         for (const conn of this.connections.values()) {
-            conn.close('shutdown')
+            conn.socket.emit('shutdown')
         }
         this.connections.clear()
     }
