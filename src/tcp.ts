@@ -3,22 +3,10 @@ import { TcpTarget } from './types'
 import { Config } from './config'
 import { Logger } from './lib/logger'
 import { ByteTransformer, SocketLogTransformer } from './lib/transformers'
+import { ConnectionManager } from './connection-manager'
 
-export function createTcpProxy(config: Config, logger: Logger) {
+export function createTcpProxy(config: Config, logger: Logger, connectionManager: ConnectionManager) {
     const listener = createServer()
-
-    const configureSocketKeepAlive = (socket: any, keepAliveInterval: number, name: string) => {
-        if (keepAliveInterval > 0) {
-            try {
-                socket.setKeepAlive(true, keepAliveInterval)
-                // Note: Default timeout is 0 (no timeout).
-                socket.setTimeout(5 * keepAliveInterval)
-                logger.log('KEEPALIVE_CONFIGURED', name)
-            } catch (err) {
-                logger.log('KEEPALIVE_CONFIG_ERROR', name, err.message)
-            }
-        }
-    }
 
     const bindTargetToLogger = (inbound: TcpTarget, outbound: TcpTarget, logger: Logger) => {
         inbound.socket
@@ -36,16 +24,8 @@ export function createTcpProxy(config: Config, logger: Logger) {
         }).once('error', err => {
             logger.log('SOCKET_BIND_ERROR', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
             client.socket.end()
-        }).once('timeout', () => {
-            logger.log('SERVER_SOCKET_TIMEOUT', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
-            server.socket.end() // Only end the server socket
         }).once('connect', () => {
             logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
-
-            // Configure keep-alive on 'client' side connection
-            configureSocketKeepAlive(client.socket, config.clientKeepAliveInterval, 'client')
-            // Configure keep-alive on 'server' side connection
-            configureSocketKeepAlive(server.socket, config.serverKeepAliveInterval, 'server')
 
             server.socket.pipe(client.socket)
             bindTargetToLogger(server, client, logger)
@@ -53,26 +33,26 @@ export function createTcpProxy(config: Config, logger: Logger) {
             client.socket.pipe(server.socket)
             bindTargetToLogger(client, server, logger)
         })
-
-        client.socket.once('timeout', () => {
-            logger.log('CLIENT_SOCKET_TIMEOUT', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
-            client.socket.end()
-            server.socket.end() // End both on 'client' timeout
-        })
     }
 
     listener
         .on('connection', (socket) => {
-            const client: TcpTarget = { socket, address: socket.remoteAddress, port: socket.remotePort, family: socket.remoteFamily, alias: 'client' }
+            const client: TcpTarget = { id: `client:${socket.remoteAddress}:${socket.remotePort}:tcp`, socket, address: socket.remoteAddress, port: socket.remotePort, family: socket.remoteFamily, alias: 'client' }
             logger.log('SOCKET_START', `${client.address}:${client.port}`)
 
-            client.socket.on('end', () => {
+            client.socket.on('data', () => {
+                connectionManager.touch(client.id)
+            })
+            .on('end', () => {
                 logger.log('SOCKET_END', `${client.address}:${client.port}`)
+                connectionManager.unregister(client.id)
             }).on('error', err => {
                 logger.log('SOCKET_END', `${client.address}:${client.port}`, err.message)
+                connectionManager.unregister(client.id)
             })
 
             let server: TcpTarget = {
+                id: client.id.replace('client', 'server'),
                 socket: createConnection({ host: config.serverAddress, port: config.serverPort }),
                 alias: 'server',
                 address: config.serverAddress,
@@ -80,6 +60,11 @@ export function createTcpProxy(config: Config, logger: Logger) {
             }
 
             bindClientToServer(client, server)
+
+            connectionManager.register(client.id, (reason) => {
+                logger.log('SOCKET_ENDING', `${client.address}:${client.port}`, `${server.address}:${server.port}`, reason)
+                client.socket.end()
+            })
         })
         .on('listening', () => {
             logger.log()
@@ -87,6 +72,9 @@ export function createTcpProxy(config: Config, logger: Logger) {
         })
         .on('error', err => {
             logger.log('PROXY_START_ERROR', `${config.bindAddress}:${config.bindPort}`, `${config.serverAddress}:${config.serverPort}`, err.message)
+        })
+        .on('close', () => {
+            connectionManager.closeAll()
         })
         .listen(config.bindPort, config.bindAddress)
 }

@@ -5,6 +5,7 @@ import { createTcpProxy } from './tcp'
 import { createUdpProxy } from './udp'
 import { NotSupportedError } from './lib/errors'
 import { ConsoleTransport, FileStoreTransport, Logger, Transport } from './lib/logger'
+import { ConnectionManager } from './connection-manager'
 
 let logger: Logger
 
@@ -37,14 +38,18 @@ if (config.logPath) {
 }
 logger = new Logger(transports)
 
+/******** Connection Management ********/
+let connectionManager = new ConnectionManager(config.socketTimeoutMs, config.sweepIntervalMs)
+connectionManager.start()
+
 /******** Listener Configuration ********/
 switch (config.type) {
     case 'tcp':
-        createTcpProxy(config, logger)
+        createTcpProxy(config, logger, connectionManager)
         break
     case 'udp4':
     case 'udp6':
-        createUdpProxy(config, logger)
+        createUdpProxy(config, logger, connectionManager)
         break
     default:
         throw new NotSupportedError(`config.type '${config.type}' is not supported`)

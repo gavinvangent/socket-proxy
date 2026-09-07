@@ -2,6 +2,7 @@ import { Socket as UdpSocket } from 'dgram'
 import { Socket as TcpSocket } from 'net'
 
 export interface Target {
+    id: string
     address: string
     port: number
     family?: string
