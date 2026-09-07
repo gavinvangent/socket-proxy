@@ -78,7 +78,7 @@ export function createUdpProxy(config: Config, logger: Logger, connectionManager
                 connectionManager.register(server.id, server.socket)
                 logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
             } else {
-                connectionManager.touch(client.id)
+                connectionManager.touch(server.id)
             }
 
             proxyMessage(message, client, server)
