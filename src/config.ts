@@ -9,11 +9,11 @@ export class Config {
     serverAddress: string
     /** The port for the proxy to send received traffic to */
     serverPort: number
-    /** the TCP Keep-Alive Interval (milliseconds) for the 'server' Connection, defaults to none */
-    serverKeepAliveInterval: number
-    /** the TCP Keep-Alive Interval (milliseconds) for the 'client' Connection, defaults to none */
-    clientKeepAliveInterval: number
-    /** The type of listener to create, udp6 or udp4, defaults to udp4 */
+    /** the duration, in milliseconds, of idle inactivity before the client connection is closed (closes the connection to the server too), defaults to 5 minutes */
+    socketIdleTimeoutMs: number
+    /** the duration, in milliseconds, between scans for idle sockets, defaults to 30 seconds */
+    sweepIntervalMs: number
+    /** The type of listener to create, tcp or udp6 or udp4, defaults to tcp */
     type: 'tcp' | 'udp4' | 'udp6'
     /** The path on disk where to write logs to */
     logPath?: string
@@ -27,8 +27,8 @@ export class Config {
 
         config.serverAddress = this.param(args, 'serverAddress')
         config.serverPort = +this.param(args, 'serverPort', '0')
-        config.serverKeepAliveInterval = +this.param(args, 'serverKeepAliveInterval', '0')
-        config.clientKeepAliveInterval = +this.param(args, 'clientKeepAliveInterval', '0')
+        config.socketIdleTimeoutMs = +this.param(args, 'socketIdleTimeoutMs', '300000')
+        config.sweepIntervalMs = +this.param(args, 'sweepIntervalMs', '30000')
 
         config.type = this.param(args, 'type', 'tcp') as 'tcp' | 'udp4' | 'udp6'
 
