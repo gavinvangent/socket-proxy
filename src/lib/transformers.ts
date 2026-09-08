@@ -1,5 +1,6 @@
 import { Transform } from 'stream'
 import { Target } from '../types'
+import { ConnectionManager } from '../connection-manager'
 
 export class ByteTransformer {
     static createStream(outputEncoding: BufferEncoding): Transform {
@@ -39,6 +40,18 @@ export class SocketLogTransformer {
 
                 const conc = Buffer.concat([headerBuffer, chunk, Buffer.from('\n')])
                 cb(null, conc)
+            },
+        })
+    }
+}
+
+export class ConnectionManagerTransformer {
+    static createStream(clientId: string, connectionManager: ConnectionManager): Transform {
+        return new Transform({
+            highWaterMark: 50 * 1024 * 1024, // 50MB
+            transform: (chunk: Buffer, encoding: string, cb: (error?: Error | null, data?: any) => void) => {
+                connectionManager.touch(clientId)
+                cb(null, chunk)
             },
         })
     }

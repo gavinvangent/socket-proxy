@@ -75,6 +75,11 @@ export function createUdpProxy(config: Config, logger: Logger, connectionManager
             const { server, isNew } = getServerSocket(client)
 
             if (isNew) {
+                // udp registers with the serverId because the udp server is a single socket - Each message
+                // carries info about the remote client, and we bind the remote client with a socket to the server
+                // so we are actually tracking the server sockets, not the single "client" socket
+                // tcp doesn't have this issue, so each tcp client is a separate tcp socket, so there it tracks the
+                // client tcp socket
                 connectionManager.register(server.id, server.socket)
                 logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
             } else {

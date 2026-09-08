@@ -2,11 +2,17 @@ import { createServer, createConnection } from 'net'
 import { TcpTarget } from './types'
 import { Config } from './config'
 import { Logger } from './lib/logger'
-import { ByteTransformer, SocketLogTransformer } from './lib/transformers'
+import { ByteTransformer, ConnectionManagerTransformer, SocketLogTransformer } from './lib/transformers'
 import { ConnectionManager } from './connection-manager'
 
 export function createTcpProxy(config: Config, logger: Logger, connectionManager: ConnectionManager) {
     const listener = createServer()
+
+    const bindSourceToDestination = (source: TcpTarget, destination: TcpTarget, connectionManager: ConnectionManager, clientId: string) => {
+        source.socket
+            .pipe(ConnectionManagerTransformer.createStream(clientId, connectionManager))
+            .pipe(destination.socket)
+    }
 
     const bindTargetToLogger = (inbound: TcpTarget, outbound: TcpTarget, logger: Logger) => {
         inbound.socket
@@ -18,17 +24,17 @@ export function createTcpProxy(config: Config, logger: Logger, connectionManager
     const bindClientToServer = (client: TcpTarget, server: TcpTarget) => {
         server.socket.once('end', err => {
             logger.log('SOCKET_UNBOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
-            client.socket.end(err);
+            client.socket.end(err)
         }).once('error', err => {
             logger.log('SOCKET_BIND_ERROR', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
             client.socket.end()
         }).once('connect', () => {
             logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
 
-            server.socket.pipe(client.socket)
+            bindSourceToDestination(server, client, connectionManager, client.id)
             bindTargetToLogger(server, client, logger)
 
-            client.socket.pipe(server.socket)
+            bindSourceToDestination(client, server, connectionManager, client.id)
             bindTargetToLogger(client, server, logger)
         })
     }
@@ -38,10 +44,7 @@ export function createTcpProxy(config: Config, logger: Logger, connectionManager
             const client: TcpTarget = { id: `client:${socket.remoteAddress}:${socket.remotePort}:tcp`, socket, address: socket.remoteAddress, port: socket.remotePort, family: socket.remoteFamily, alias: 'client' }
             logger.log('SOCKET_START', `${client.address}:${client.port}`)
 
-            client.socket.on('data', () => {
-                connectionManager.touch(client.id)
-            })
-            .once('end', () => {
+            client.socket.once('end', () => {
                 logger.log('SOCKET_END', `${client.address}:${client.port}`)
                 connectionManager.deregister(client.id)
             }).once('error', err => {
