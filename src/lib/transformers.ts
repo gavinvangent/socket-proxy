@@ -50,7 +50,7 @@ export class ConnectionManagerTransformer {
         return new Transform({
             highWaterMark: 50 * 1024 * 1024, // 50MB
             transform: (chunk: Buffer, encoding: string, cb: (error?: Error | null, data?: any) => void) => {
-                connectionManager.touch(clientId);
+                connectionManager.touch(clientId)
                 cb(null, chunk)
             },
         })

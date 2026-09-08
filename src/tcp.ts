@@ -24,17 +24,17 @@ export function createTcpProxy(config: Config, logger: Logger, connectionManager
     const bindClientToServer = (client: TcpTarget, server: TcpTarget) => {
         server.socket.once('end', err => {
             logger.log('SOCKET_UNBOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
-            client.socket.end(err);
+            client.socket.end(err)
         }).once('error', err => {
             logger.log('SOCKET_BIND_ERROR', `${client.address}:${client.port}`, `${server.address}:${server.port}`, err?.message)
             client.socket.end()
         }).once('connect', () => {
             logger.log('SOCKET_BOUND', `${client.address}:${client.port}`, `${server.address}:${server.port}`)
 
-            bindSourceToDestination(server, client, connectionManager, client.id);
+            bindSourceToDestination(server, client, connectionManager, client.id)
             bindTargetToLogger(server, client, logger)
 
-            bindSourceToDestination(client, server, connectionManager, client.id);
+            bindSourceToDestination(client, server, connectionManager, client.id)
             bindTargetToLogger(client, server, logger)
         })
     }
